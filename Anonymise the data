@@ -1,0 +1,40 @@
+from pyspark.sql import SparkSession
+from faker import Faker
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType
+
+# Initialize Spark session
+spark = SparkSession.builder \
+    .appName("Anonymize Data") \
+    .getOrCreate()
+
+# Read the CSV file
+df = spark.read.csv(“file_path/customer.csv", header=True, inferSchema=True)
+
+# Initialize Faker
+fake = Faker()
+
+# Define UDFs for generating fake data
+def fake_first_name():
+    return fake.firstname()
+
+def fake_last_name():
+    return fake.lastname()
+
+def fake_address():
+    return fake.address()
+
+fake_first_name_udf = udf(fake_first_name, StringType())
+fake_last_name_udf = udf(fake_last_name, StringType())
+fake_address_udf = udf(fake_address, StringType())
+
+# Apply the UDFs to the DataFrame
+anonymized_df = df.withColumn(“firstname", fake_first_name_udf()) \
+		 .withColumn(“lastname", fake_last_name_udf()) \
+                  .withColumn("address”, fake_address_udf())
+
+# Write the anonymized data back to a CSV file
+anonymized_df.write.csv("path/to/your/anonymized_customer.csv", header=True)
+
+# Stop the Spark session
+spark.stop()
