@@ -1,0 +1,39 @@
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+# Initialize Spark session
+spark = SparkSession.builder \
+    .appName("Fixed width to CSV") \
+    .getOrCreate()
+
+# Define the schema for the DataFrame
+schema = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True),
+    StructField("age", IntegerType(), True)
+])
+
+# Define the fixed-width field lengths
+field_widths = [5, 20, 3]
+
+# Read the fixed-width file into an RDD
+rdd = spark.sparkContext.textFile(“file_path/input_file.txt")
+
+# Function to parse each line
+def parse_line(line):
+    id = int(line[0:5].strip())
+    name = line[5:25].strip()
+    age = int(line[25:28].strip())
+    return (id, name, age)
+
+# Parse the RDD
+parsed_rdd = rdd.map(parse_line)
+
+# Convert the RDD to a DataFrame
+df = spark.createDataFrame(parsed_rdd, schema)
+
+# Write the DataFrame to a CSV file
+df.write.csv(“file_path/output_file.csv", header=True)
+
+# Stop the Spark session
+spark.stop()
